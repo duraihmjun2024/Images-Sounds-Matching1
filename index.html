@@ -3,16 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1f1f1f">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="PUPS Game">
-  
   <title>PUPS - Sound Match Game</title>
-  
-  <link rel="manifest" href="manifest.json">
-
   <style>
     :root {
       --primary: #1a73e8;
@@ -31,31 +22,31 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    html, body { width: 100vw; height: 100vh; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
 
     body { display: flex; flex-direction: column; }
 
-    header { background: #1f1f1f; color: #fff; padding: 2px 6px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-    header h1 { font-size: 0.8rem; font-weight: 600; color: #8ab4f8; }
+    header { background: #1f1f1f; color: #fff; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+    header h1 { font-size: 0.85rem; font-weight: 600; color: #8ab4f8; }
 
-    main { flex: 1; padding: 1px; display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 24px); }
+    main { flex: 1; padding: 2px; display: flex; flex-direction: column; overflow: hidden; }
 
     .controls-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 4px;
-      margin-bottom: 1px;
-      padding: 3px 4px;
+      margin-bottom: 2px;
+      padding: 4px 6px;
       background: #1e1e1e;
       border: 1px solid var(--border);
-      border-radius: 3px;
+      border-radius: 4px;
       flex-shrink: 0;
       flex-wrap: wrap;
     }
     
-    .btn-group { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
-    .action-btn { padding: 3px 6px; background: var(--primary); color: white; border: none; border-radius: 3px; font-weight: 600; font-size: 0.65rem; cursor: pointer; }
+    .btn-group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .action-btn { padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 3px; font-weight: 600; font-size: 0.7rem; cursor: pointer; }
     .action-btn.start { background: var(--accent); }
     .action-btn.reset { background: #5f6368; }
     .action-btn.tts { background: #9c27b0; }
@@ -73,7 +64,7 @@
       font-size: 0.65rem;
       color: #8ab4f8;
       background: #172b4d;
-      padding: 2px 5px;
+      padding: 2px 6px;
       border-radius: 3px;
       border: 1px solid #253858;
       max-width: 180px;
@@ -90,26 +81,25 @@
     .audio-status-inline {
       font-size: 0.65rem;
       font-weight: 600;
-      color: #8ab4f8;
-      background: #172b4d;
-      padding: 1px 4px;
-      border-radius: 2px;
-      border: 1px solid #253858;
+      color: #81c784;
+      background: #1b5e20;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #2e7d32;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 25%;
     }
 
-    .score-board { display: flex; gap: 2px; font-size: 0.68rem; font-weight: 600; }
-    .score-item { background: #282a2c; padding: 1px 4px; border-radius: 2px; border: 1px solid var(--border); color: #e8eaed; }
+    .score-board { display: flex; gap: 4px; font-size: 0.7rem; font-weight: 600; }
+    .score-item { background: #282a2c; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border); color: #e8eaed; }
 
     .game-container { flex: 1; width: 100%; overflow: hidden; display: flex; flex-direction: column; }
 
     .mode-portrait {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 2px;
+      gap: 4px;
       height: 100%;
       overflow: hidden;
     }
@@ -117,22 +107,21 @@
     .portrait-col {
       display: flex;
       flex-direction: column;
-      gap: 0px;
+      gap: 2px;
       height: 100%;
       justify-content: space-between;
       width: 100%;
     }
 
     .portrait-col-title {
-      font-size: 0.62rem;
+      font-size: 0.65rem;
       font-weight: bold;
       color: #9aa0a6;
       text-align: center;
-      padding: 1px 0;
+      padding: 2px 0;
       background: #282a2c;
       border-radius: 2px;
       flex-shrink: 0;
-      line-height: 1.1;
     }
 
     .portrait-img-card {
@@ -141,24 +130,22 @@
       align-items: center;
       background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 2px;
+      border-radius: 3px;
       overflow: hidden;
       flex: 1;
-      max-height: calc((100vh - 70px) / 13);
       width: 100%;
     }
 
     .portrait-img-card img {
-      width: 66%;
+      width: 65%;
       height: 100%;
       object-fit: contain;
       background: #ffffff;
       display: block;
-      padding: 0px;
     }
 
     .portrait-drop-box {
-      width: 34%;
+      width: 35%;
       height: 100%;
       background: #2d2e30;
       border-left: 1px dashed var(--border);
@@ -169,10 +156,9 @@
 
     .portrait-sound-slot {
       flex: 1;
-      max-height: calc((100vh - 70px) / 13);
       border: 1px dashed var(--border);
       background: #1e1e1e;
-      border-radius: 2px;
+      border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -182,7 +168,7 @@
     .mode-landscape {
       display: grid;
       grid-template-columns: repeat(13, minmax(0, 1fr));
-      gap: 2px;
+      gap: 3px;
       width: 100%;
       height: 100%;
       overflow: hidden;
@@ -191,13 +177,12 @@
     .landscape-grid-header {
       grid-column: span 13;
       font-weight: bold;
-      font-size: 0.68rem;
+      font-size: 0.7rem;
       color: #9aa0a6;
-      padding: 1px 0;
+      padding: 2px 0;
     }
 
     .landscape-img-card {
-      height: calc((100vh - 110px) / 2);
       background: #ffffff;
       border: 1px solid var(--border);
       border-radius: 3px;
@@ -205,6 +190,7 @@
       flex-direction: column;
       align-items: center;
       overflow: hidden;
+      height: 100%;
     }
 
     .landscape-img-card img {
@@ -213,7 +199,6 @@
       object-fit: contain;
       background: #ffffff;
       display: block;
-      padding: 1px;
     }
 
     .landscape-drop-box {
@@ -227,13 +212,13 @@
     }
 
     .landscape-sound-slot {
-      height: calc((100vh - 110px) / 2);
       border: 1px dashed var(--border);
       background: #1e1e1e;
       border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
+      height: 100%;
     }
 
     .sound-drop-box.correct { border: 2px solid var(--correct-border) !important; background-color: var(--correct-bg) !important; }
@@ -245,7 +230,7 @@
       height: 100%;
       background: #172b4d;
       border: 1px solid #253858;
-      border-radius: 2px;
+      border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -309,7 +294,7 @@
   <div id="orientationModal" class="modal-overlay">
     <div class="modal-card">
       <h2>📱 Choose Layout Mode</h2>
-      <p>Select preferred screen orientation to play in full screen:</p>
+      <p>Select preferred screen orientation to start playing:</p>
       <div class="modal-btns">
         <button class="modal-btn" onclick="selectOrientation('portrait')">📱 Portrait<br><small>(Side-by-Side)</small></button>
         <button class="modal-btn secondary" onclick="selectOrientation('landscape')">🔄 Landscape<br><small>(Horizontal Grid)</small></button>
@@ -319,20 +304,20 @@
 
   <header>
     <h1>PUPS - Sound Match Game</h1>
-    <span id="headerStatus" style="font-size:0.68rem;">PWA Ready</span>
+    <span id="headerStatus" style="font-size:0.68rem;">Ready</span>
   </header>
 
   <main>
     <div class="controls-top">
       <div class="btn-group">
-        <button id="btnStart" class="action-btn start" onclick="startGame()" disabled>▶ Start</button>
+        <button id="btnStart" class="action-btn start" onclick="startGame()">▶ Start</button>
         <button id="btnCheck" class="action-btn" onclick="checkAnswers()" disabled>Check</button>
         <button id="btnReset" class="action-btn reset" onclick="resetGame()" disabled>Reset</button>
 
         <button class="action-btn tts" onclick="speakText('ta')">🔊 TTS (TA)</button>
         <button class="action-btn tts" onclick="speakText('en')">🔊 TTS (EN)</button>
-        <button class="action-btn stt" onclick="startSpeechToText('ta')">🎙️ STT (TA)</button>
-        <button class="action-btn stt" onclick="startSpeechToText('en')">🎙️️ STT (EN)</button>
+        <button class="action-btn stt" onclick="startSpeechToText('ta')">🎙 STT (TA)</button>
+        <button class="action-btn stt" onclick="startSpeechToText('en')">🎙️ STT (EN)</button>
       </div>
 
       <div class="stt-container">
@@ -340,7 +325,7 @@
         <div class="stt-box"><b>EN:</b> <span id="sttResultEn">Waiting...</span></div>
       </div>
 
-      <div id="audioStatus" class="audio-status-inline">⏳ Loading MP3s...</div>
+      <div id="audioStatus" class="audio-status-inline">🎵 Ready</div>
 
       <div class="score-board">
         <div class="score-item">⏱ <span id="timer">00:00</span></div>
@@ -351,18 +336,9 @@
     <div id="gameContainer" class="game-container"></div>
   </main>
 
-  <audio id="globalAudio" preload="auto" playsinline></audio>
+  <audio id="globalAudio" playsinline crossorigin="anonymous"></audio>
 
   <script>
-    // Register Service Worker for PWA Support
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('PWA Service Worker registered:', reg.scope))
-          .catch(err => console.error('PWA SW registration failed:', err));
-      });
-    }
-
     const TAMIL_SENTENCE = "விடாமுயற்சியும், விவேக பயிற்சியும் வெற்றி தரும்!";
     const ENGLISH_SENTENCE = "Perseverance and prudent practice lead to success!";
 
@@ -382,7 +358,6 @@
       { id: "13", img: "https://lh3.googleusercontent.com/d/1f8jYRYyyvitbQCyri5EZAK1AfgkK85jt", audioId: "1np9pxT7C3MYZteDghX0R-ZVHxtYC_W3O" }
     ];
 
-    const audioMap = new Map();
     const globalAudio = document.getElementById('globalAudio');
 
     let timerInterval = null;
@@ -391,20 +366,51 @@
     let currentOrientation = 'portrait';
     let shuffledSoundsList = [...dataset];
 
+    // Helper to get play URL for drive IDs
+    function getAudioUrl(fileId) {
+      return `https://docs.google.com/uc?export=download&id=${fileId}`;
+    }
+
+    // Dynamic TTS with fallback stream if board voice engine is missing
     function speakText(lang) {
-      if (!('speechSynthesis' in window)) {
-        alert('Text-to-Speech is not supported in this browser.');
-        return;
-      }
-      window.speechSynthesis.cancel();
       const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
-      utterance.rate = 0.9;
       updateStatus(lang === 'ta' ? '🗣️ Speaking Tamil...' : '🗣️ Speaking English...');
-      utterance.onend = () => updateStatus('🎵 Ready');
-      utterance.onerror = () => updateStatus('⚠️ TTS Error');
-      window.speechSynthesis.speak(utterance);
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        
+        // Wait for voices to load (essential on Android/Smartboards)
+        const voices = window.speechSynthesis.getVoices();
+        const hasMatchingVoice = voices.some(v => v.lang.startsWith(lang));
+
+        if (voices.length > 0 && hasMatchingVoice) {
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+          utterance.rate = 0.9;
+          
+          utterance.onend = () => updateStatus('🎵 Ready');
+          utterance.onerror = () => playFallbackTTS(textToSpeak, lang);
+
+          window.speechSynthesis.speak(utterance);
+          return;
+        }
+      }
+      
+      // Fallback audio stream for hardware lacking built-in speech engines
+      playFallbackTTS(textToSpeak, lang);
+    }
+
+    function playFallbackTTS(text, lang) {
+      const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang === 'ta' ? 'ta' : 'en'}&client=tw-ob`;
+      globalAudio.src = fallbackUrl;
+      globalAudio.play()
+        .then(() => {
+          globalAudio.onended = () => updateStatus('🎵 Ready');
+        })
+        .catch(err => {
+          console.error('Fallback TTS Error:', err);
+          updateStatus('⚠️ TTS Unavailable');
+        });
     }
 
     function startSpeechToText(lang) {
@@ -449,64 +455,29 @@
       statusElem.textContent = msg;
     }
 
-    function enableFullScreen() {
-      const doc = document.documentElement;
-      if (doc.requestFullscreen) doc.requestFullscreen().catch(() => {});
-      else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
-    }
-
     function unlockAudio() {
       if (globalAudio.src) return;
       globalAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
       globalAudio.play().then(() => globalAudio.pause()).catch(() => {});
       document.removeEventListener('pointerdown', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
     }
     document.addEventListener('pointerdown', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
 
     function selectOrientation(mode) {
-      enableFullScreen();
       currentOrientation = mode;
       document.getElementById('orientationModal').style.display = 'none';
       renderLayout(dataset, shuffledSoundsList);
     }
 
-    function preloadAudio() {
-      const ids = dataset.map(d => d.audioId);
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(data => {
-            if (data) {
-              Object.keys(data).forEach(k => { if (data[k]) audioMap.set(k, data[k]); });
-            }
-            enableStartButton('🎵 All Sounds Loaded!');
-          })
-          .withFailureHandler(err => {
-            console.error('Audio load error:', err);
-            enableStartButton('⚠️ Failed to load MP3s');
-          })
-          .getAllAudioData(ids);
-      } else {
-        enableStartButton('🎵 Local / PWA Mode Ready');
-      }
-    }
-
-    function enableStartButton(msg) {
-      document.getElementById('headerStatus').textContent = 'Ready';
-      const statusElem = document.getElementById('audioStatus');
-      statusElem.textContent = msg;
-      statusElem.style.color = '#81c784';
-      statusElem.style.background = '#1b5e20';
-      statusElem.style.borderColor = '#2e7d32';
-      document.getElementById('btnStart').disabled = false;
-    }
-
-    window.addEventListener('DOMContentLoaded', preloadAudio);
-
     function playSound(item) {
-      if (audioMap.has(item.audioId)) {
-        globalAudio.src = audioMap.get(item.audioId);
-        globalAudio.play().catch(e => console.error('Play error:', e));
-      }
+      unlockAudio();
+      globalAudio.src = getAudioUrl(item.audioId);
+      globalAudio.play().catch(e => {
+        console.error('Play error:', e);
+        updateStatus('⚠️ Audio Playback Blocked');
+      });
     }
 
     function renderLayout(images, sounds) {
@@ -590,6 +561,7 @@
       btn.className = 'audio-symbol-btn';
       btn.textContent = '🔊';
       btn.addEventListener('pointerdown', e => e.stopPropagation());
+      btn.addEventListener('touchstart', e => e.stopPropagation());
       btn.addEventListener('click', e => {
         e.stopPropagation();
         playSound(item);
@@ -601,7 +573,6 @@
     }
 
     function startGame() {
-      enableFullScreen();
       resetTimer();
       startTimer();
       isGameActive = true;
@@ -654,7 +625,7 @@
       document.getElementById('btnReset').disabled = true;
       document.getElementById('score').textContent = '0/13';
       document.getElementById('timer').textContent = '00:00';
-      document.getElementById('audioStatus').textContent = '🎵 Ready!';
+      document.getElementById('audioStatus').textContent = '🎵 Ready';
       document.getElementById('sttResultTa').textContent = 'Waiting...';
       document.getElementById('sttResultEn').textContent = 'Waiting...';
       shuffledSoundsList = [...dataset];
@@ -713,6 +684,13 @@
     }
     function stopTimer() { if (timerInterval) clearInterval(timerInterval); }
     function resetTimer() { stopTimer(); secondsElapsed = 0; document.getElementById('timer').textContent = '00:00'; }
+
+    // Ensure speech synth voices populate on hardware ready
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
 
     window.onload = () => renderLayout(dataset, dataset);
   </script>
