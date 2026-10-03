@@ -1,0 +1,21 @@
+{
+  "name": "PUPS Sound Match Game",
+  "short_name": "PUPS Game",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1f1f1f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1UOHjdl49bQgPwiebvMhstgvtW03rFau4",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1UOHjdl49bQgPwiebvMhstgvtW03rFau4",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
