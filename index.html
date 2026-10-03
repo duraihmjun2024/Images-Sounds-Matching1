@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1f1f1f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PUPS Game">
+  
+  <title>PUPS - Sound Match Game</title>
+  
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --accent: #34a853;
+      --bg: #121212;
+      --text: #e8eaed;
+      --border: #3c4043;
+      --card-bg: #1e1e1e;
+      
+      --correct-border: #2e7d32;
+      --correct-bg: #1b5e20;
+      --wrong-border: #c62828;
+      --wrong-bg: #b71c1c;
+      --missed-border: #0288d1;
+      --missed-bg: #01579b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    body { display: flex; flex-direction: column; }
+
+    header { background: #1f1f1f; color: #fff; padding: 2px 6px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+    header h1 { font-size: 0.8rem; font-weight: 600; color: #8ab4f8; }
+
+    main { flex: 1; padding: 1px; display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 24px); }
+
+    .controls-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 1px;
+      padding: 3px 4px;
+      background: #1e1e1e;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    
+    .btn-group { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+    .action-btn { padding: 3px 6px; background: var(--primary); color: white; border: none; border-radius: 3px; font-weight: 600; font-size: 0.65rem; cursor: pointer; }
+    .action-btn.start { background: var(--accent); }
+    .action-btn.reset { background: #5f6368; }
+    .action-btn.tts { background: #9c27b0; }
+    .action-btn.stt { background: #e65100; }
+    .action-btn:disabled { background: #3c4043 !important; color: #80868b !important; cursor: not-allowed; }
+
+    .stt-container {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .stt-box {
+      font-size: 0.65rem;
+      color: #8ab4f8;
+      background: #172b4d;
+      padding: 2px 5px;
+      border-radius: 3px;
+      border: 1px solid #253858;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stt-box span {
+      font-weight: bold;
+      color: #ffb74d;
+    }
+
+    .audio-status-inline {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #8ab4f8;
+      background: #172b4d;
+      padding: 1px 4px;
+      border-radius: 2px;
+      border: 1px solid #253858;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 25%;
+    }
+
+    .score-board { display: flex; gap: 2px; font-size: 0.68rem; font-weight: 600; }
+    .score-item { background: #282a2c; padding: 1px 4px; border-radius: 2px; border: 1px solid var(--border); color: #e8eaed; }
+
+    .game-container { flex: 1; width: 100%; overflow: hidden; display: flex; flex-direction: column; }
+
+    .mode-portrait {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .portrait-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0px;
+      height: 100%;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .portrait-col-title {
+      font-size: 0.62rem;
+      font-weight: bold;
+      color: #9aa0a6;
+      text-align: center;
+      padding: 1px 0;
+      background: #282a2c;
+      border-radius: 2px;
+      flex-shrink: 0;
+      line-height: 1.1;
+    }
+
+    .portrait-img-card {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex: 1;
+      max-height: calc((100vh - 70px) / 13);
+      width: 100%;
+    }
+
+    .portrait-img-card img {
+      width: 66%;
+      height: 100%;
+      object-fit: contain;
+      background: #ffffff;
+      display: block;
+      padding: 0px;
+    }
+
+    .portrait-drop-box {
+      width: 34%;
+      height: 100%;
+      background: #2d2e30;
+      border-left: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .portrait-sound-slot {
+      flex: 1;
+      max-height: calc((100vh - 70px) / 13);
+      border: 1px dashed var(--border);
+      background: #1e1e1e;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .mode-landscape {
+      display: grid;
+      grid-template-columns: repeat(13, minmax(0, 1fr));
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .landscape-grid-header {
+      grid-column: span 13;
+      font-weight: bold;
+      font-size: 0.68rem;
+      color: #9aa0a6;
+      padding: 1px 0;
+    }
+
+    .landscape-img-card {
+      height: calc((100vh - 110px) / 2);
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .landscape-img-card img {
+      width: 100%;
+      height: 55%;
+      object-fit: contain;
+      background: #ffffff;
+      display: block;
+      padding: 1px;
+    }
+
+    .landscape-drop-box {
+      width: 100%;
+      height: 45%;
+      background: #2d2e30;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .landscape-sound-slot {
+      height: calc((100vh - 110px) / 2);
+      border: 1px dashed var(--border);
+      background: #1e1e1e;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sound-drop-box.correct { border: 2px solid var(--correct-border) !important; background-color: var(--correct-bg) !important; }
+    .sound-drop-box.wrong { border: 2px solid var(--wrong-border) !important; background-color: var(--wrong-bg) !important; }
+    .sound-drop-box.missed { border: 2px solid var(--missed-border) !important; background-color: var(--missed-bg) !important; }
+
+    .draggable-sound {
+      width: 100%;
+      height: 100%;
+      background: #172b4d;
+      border: 1px solid #253858;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+      box-sizing: border-box;
+    }
+    .draggable-sound.dragging { opacity: 0.4; }
+
+    .audio-symbol-btn {
+      background: none;
+      border: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+      line-height: 1;
+      color: #8ab4f8;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-card {
+      background: #1e1e1e;
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      width: 85%;
+      max-width: 320px;
+    }
+
+    .modal-card h2 { font-size: 0.95rem; margin-bottom: 6px; color: #8ab4f8; }
+    .modal-card p { font-size: 0.78rem; margin-bottom: 12px; color: #9aa0a6; }
+
+    .modal-btns { display: flex; gap: 8px; justify-content: center; }
+    .modal-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.78rem;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+    }
+    .modal-btn.secondary { background: #3c4043; }
+
+    #globalAudio { position: fixed; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+  <div id="orientationModal" class="modal-overlay">
+    <div class="modal-card">
+      <h2>📱 Choose Layout Mode</h2>
+      <p>Select preferred screen orientation to play in full screen:</p>
+      <div class="modal-btns">
+        <button class="modal-btn" onclick="selectOrientation('portrait')">📱 Portrait<br><small>(Side-by-Side)</small></button>
+        <button class="modal-btn secondary" onclick="selectOrientation('landscape')">🔄 Landscape<br><small>(Horizontal Grid)</small></button>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <h1>PUPS - Sound Match Game</h1>
+    <span id="headerStatus" style="font-size:0.68rem;">PWA Ready</span>
+  </header>
+
+  <main>
+    <div class="controls-top">
+      <div class="btn-group">
+        <button id="btnStart" class="action-btn start" onclick="startGame()" disabled>▶ Start</button>
+        <button id="btnCheck" class="action-btn" onclick="checkAnswers()" disabled>Check</button>
+        <button id="btnReset" class="action-btn reset" onclick="resetGame()" disabled>Reset</button>
+
+        <button class="action-btn tts" onclick="speakText('ta')">🔊 TTS (TA)</button>
+        <button class="action-btn tts" onclick="speakText('en')">🔊 TTS (EN)</button>
+        <button class="action-btn stt" onclick="startSpeechToText('ta')">🎙️ STT (TA)</button>
+        <button class="action-btn stt" onclick="startSpeechToText('en')">🎙️️ STT (EN)</button>
+      </div>
+
+      <div class="stt-container">
+        <div class="stt-box"><b>TA:</b> <span id="sttResultTa">Waiting...</span></div>
+        <div class="stt-box"><b>EN:</b> <span id="sttResultEn">Waiting...</span></div>
+      </div>
+
+      <div id="audioStatus" class="audio-status-inline">⏳ Loading MP3s...</div>
+
+      <div class="score-board">
+        <div class="score-item">⏱ <span id="timer">00:00</span></div>
+        <div class="score-item">⭐ <span id="score">0/13</span></div>
+      </div>
+    </div>
+
+    <div id="gameContainer" class="game-container"></div>
+  </main>
+
+  <audio id="globalAudio" preload="auto" playsinline></audio>
+
+  <script>
+    // Register Service Worker for PWA Support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('PWA Service Worker registered:', reg.scope))
+          .catch(err => console.error('PWA SW registration failed:', err));
+      });
+    }
+
+    const TAMIL_SENTENCE = "விடாமுயற்சியும், விவேக பயிற்சியும் வெற்றி தரும்!";
+    const ENGLISH_SENTENCE = "Perseverance and prudent practice lead to success!";
+
+    const dataset = [
+      { id: "1",  img: "https://lh3.googleusercontent.com/d/1UOHjdl49bQgPwiebvMhstgvtW03rFau4", audioId: "1oucN6FzxzB4OGZnkeHi6_3noO5yUcvPw" },
+      { id: "2",  img: "https://lh3.googleusercontent.com/d/1CYREKVkeAXXfWN2BSA9jCmbxMqBLnTya", audioId: "1JWjGWxzyMtI5zPwtabLmy9mNRz-jBZby" },
+      { id: "3",  img: "https://lh3.googleusercontent.com/d/1R9dJLOKAEMhHt_ikfQWOphmgnVVMynO0", audioId: "1eKzzRfaw2jChm4_j8Serk_3Lv-JNaO9h" },
+      { id: "4",  img: "https://lh3.googleusercontent.com/d/1rXWE3it2GvMA-wNXf01RtnZ_HiQoPT-t", audioId: "1I8m4pT90RaghUUII0lBOe7KiRzz72W0Q" },
+      { id: "5",  img: "https://lh3.googleusercontent.com/d/1fA6cACO67jckdJThTFr5iN2v1Say-v2B", audioId: "1cban5yv7JtJi6eqLU-xTYiOxEcBoXQvi" },
+      { id: "6",  img: "https://lh3.googleusercontent.com/d/10x9800p3xqJhnWGko1jWECNGENta9Dl3", audioId: "1dxOkATa2mkHslloILR38SDXLQU8Oizz4" },
+      { id: "7",  img: "https://lh3.googleusercontent.com/d/1OpSO3vzWEpbn9_ELO-EM7A-qNc04_9Hu", audioId: "1r6HIPqCa1hC41ueO-C8KurpyCLcsb4dA" },
+      { id: "8",  img: "https://lh3.googleusercontent.com/d/1npIhqbO6f-HosjsZtS5mpqmUmXrll0RD", audioId: "1yJSNPN54mBWOeuVMw0_eevXe02-wVoGi" },
+      { id: "9",  img: "https://lh3.googleusercontent.com/d/1APexhFztWEnN38XETU_5ngsFZicv00lB", audioId: "11QAc8qXZ9nZ0syR1pYWHwWsKQ5W5er16" },
+      { id: "10", img: "https://lh3.googleusercontent.com/d/1gNzsZ5T6ZsKJCN54Z8JvwYpsSD9Ay6LH", audioId: "1NuziSHKggcy-__L2PYYhlCMgjtiawVYC" },
+      { id: "11", img: "https://lh3.googleusercontent.com/d/1osi0wzXTYU1oKF8_5gexr0dzi-vm6zOF", audioId: "1PEx8-XnrU0z8NHAWmsy2pssl8t2YkFhU" },
+      { id: "12", img: "https://lh3.googleusercontent.com/d/1qVMPm3V91cC0l5GG7yG0KmTSk-tG3Yom", audioId: "1QbNUVYY_k4IWFMo1s5LFH-FBBmi98YJZ" },
+      { id: "13", img: "https://lh3.googleusercontent.com/d/1f8jYRYyyvitbQCyri5EZAK1AfgkK85jt", audioId: "1np9pxT7C3MYZteDghX0R-ZVHxtYC_W3O" }
+    ];
+
+    const audioMap = new Map();
+    const globalAudio = document.getElementById('globalAudio');
+
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let isGameActive = false;
+    let currentOrientation = 'portrait';
+    let shuffledSoundsList = [...dataset];
+
+    function speakText(lang) {
+      if (!('speechSynthesis' in window)) {
+        alert('Text-to-Speech is not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+      utterance.rate = 0.9;
+      updateStatus(lang === 'ta' ? '🗣️ Speaking Tamil...' : '🗣️ Speaking English...');
+      utterance.onend = () => updateStatus('🎵 Ready');
+      utterance.onerror = () => updateStatus('⚠️ TTS Error');
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function startSpeechToText(lang) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        alert('Speech Recognition is not supported in this browser.');
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      const targetBox = lang === 'ta' ? document.getElementById('sttResultTa') : document.getElementById('sttResultEn');
+      targetBox.textContent = "Listening...";
+
+      updateStatus(lang === 'ta' ? '🎙️ Listening Tamil...' : '🎙️ Listening English...');
+
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        targetBox.textContent = transcript;
+        updateStatus('✅ Speech Captured!');
+      };
+
+      recognition.onerror = (event) => {
+        console.error('STT Error:', event.error);
+        targetBox.textContent = "Error!";
+        updateStatus(`⚠️ STT Error: ${event.error}`);
+      };
+
+      recognition.onend = () => {
+        setTimeout(() => updateStatus('🎵 Ready'), 3000);
+      };
+    }
+
+    function updateStatus(msg) {
+      const statusElem = document.getElementById('audioStatus');
+      statusElem.textContent = msg;
+    }
+
+    function enableFullScreen() {
+      const doc = document.documentElement;
+      if (doc.requestFullscreen) doc.requestFullscreen().catch(() => {});
+      else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+    }
+
+    function unlockAudio() {
+      if (globalAudio.src) return;
+      globalAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      globalAudio.play().then(() => globalAudio.pause()).catch(() => {});
+      document.removeEventListener('pointerdown', unlockAudio);
+    }
+    document.addEventListener('pointerdown', unlockAudio);
+
+    function selectOrientation(mode) {
+      enableFullScreen();
+      currentOrientation = mode;
+      document.getElementById('orientationModal').style.display = 'none';
+      renderLayout(dataset, shuffledSoundsList);
+    }
+
+    function preloadAudio() {
+      const ids = dataset.map(d => d.audioId);
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(data => {
+            if (data) {
+              Object.keys(data).forEach(k => { if (data[k]) audioMap.set(k, data[k]); });
+            }
+            enableStartButton('🎵 All Sounds Loaded!');
+          })
+          .withFailureHandler(err => {
+            console.error('Audio load error:', err);
+            enableStartButton('⚠️ Failed to load MP3s');
+          })
+          .getAllAudioData(ids);
+      } else {
+        enableStartButton('🎵 Local / PWA Mode Ready');
+      }
+    }
+
+    function enableStartButton(msg) {
+      document.getElementById('headerStatus').textContent = 'Ready';
+      const statusElem = document.getElementById('audioStatus');
+      statusElem.textContent = msg;
+      statusElem.style.color = '#81c784';
+      statusElem.style.background = '#1b5e20';
+      statusElem.style.borderColor = '#2e7d32';
+      document.getElementById('btnStart').disabled = false;
+    }
+
+    window.addEventListener('DOMContentLoaded', preloadAudio);
+
+    function playSound(item) {
+      if (audioMap.has(item.audioId)) {
+        globalAudio.src = audioMap.get(item.audioId);
+        globalAudio.play().catch(e => console.error('Play error:', e));
+      }
+    }
+
+    function renderLayout(images, sounds) {
+      const container = document.getElementById('gameContainer');
+      container.innerHTML = '';
+
+      if (currentOrientation === 'portrait') {
+        container.className = 'game-container mode-portrait';
+
+        const leftCol = document.createElement('div');
+        leftCol.className = 'portrait-col';
+        leftCol.innerHTML = '<div class="portrait-col-title">🖼️ Target Images</div>';
+
+        images.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'portrait-img-card';
+          card.innerHTML = `
+            <img src="${item.img}" alt="${item.id}">
+            <div class="sound-drop-box portrait-drop-box" data-target-id="${item.id}"></div>
+          `;
+          leftCol.appendChild(card);
+        });
+
+        const rightCol = document.createElement('div');
+        rightCol.className = 'portrait-col';
+        rightCol.innerHTML = '<div class="portrait-col-title">🔊 Available Sounds</div>';
+
+        sounds.forEach(item => {
+          const slot = document.createElement('div');
+          slot.className = 'portrait-sound-slot';
+
+          const dragItem = createSoundBlock(item);
+          slot.appendChild(dragItem);
+          rightCol.appendChild(slot);
+        });
+
+        container.appendChild(leftCol);
+        container.appendChild(rightCol);
+
+      } else {
+        container.className = 'game-container mode-landscape';
+
+        const imgRowHeader = document.createElement('div');
+        imgRowHeader.className = 'landscape-grid-header';
+        imgRowHeader.textContent = 'Target Images & Drop Area (1-13)';
+        container.appendChild(imgRowHeader);
+
+        images.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'landscape-img-card';
+          card.innerHTML = `
+            <img src="${item.img}" alt="${item.id}">
+            <div class="sound-drop-box landscape-drop-box" data-target-id="${item.id}"></div>
+          `;
+          container.appendChild(card);
+        });
+
+        const soundRowHeader = document.createElement('div');
+        soundRowHeader.className = 'landscape-grid-header';
+        soundRowHeader.textContent = 'Available Sounds';
+        container.appendChild(soundRowHeader);
+
+        sounds.forEach(item => {
+          const slot = document.createElement('div');
+          slot.className = 'landscape-sound-slot';
+
+          const dragItem = createSoundBlock(item);
+          slot.appendChild(dragItem);
+          container.appendChild(slot);
+        });
+      }
+    }
+
+    function createSoundBlock(item) {
+      const dragItem = document.createElement('div');
+      dragItem.className = 'draggable-sound';
+      dragItem.dataset.id = item.id;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'audio-symbol-btn';
+      btn.textContent = '🔊';
+      btn.addEventListener('pointerdown', e => e.stopPropagation());
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        playSound(item);
+      });
+
+      dragItem.appendChild(btn);
+      enableDrag(dragItem);
+      return dragItem;
+    }
+
+    function startGame() {
+      enableFullScreen();
+      resetTimer();
+      startTimer();
+      isGameActive = true;
+
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnCheck').disabled = false;
+      document.getElementById('btnReset').disabled = true;
+
+      document.getElementById('audioStatus').textContent = '🎮 Match sounds to images!';
+
+      shuffledSoundsList = [...dataset].sort(() => Math.random() - 0.5);
+      renderLayout(dataset, shuffledSoundsList);
+    }
+
+    function checkAnswers() {
+      stopTimer();
+      isGameActive = false;
+
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnCheck').disabled = true;
+      document.getElementById('btnReset').disabled = false;
+
+      let correctCount = 0;
+
+      document.querySelectorAll('.sound-drop-box').forEach(box => {
+        const targetId = box.dataset.targetId;
+        const child = box.querySelector('.draggable-sound');
+
+        box.classList.remove('correct', 'wrong', 'missed');
+
+        if (!child) {
+          box.classList.add('missed');
+        } else if (child.dataset.id === targetId) {
+          box.classList.add('correct');
+          correctCount++;
+        } else {
+          box.classList.add('wrong');
+        }
+      });
+
+      document.getElementById('score').textContent = `${correctCount}/13`;
+      document.getElementById('audioStatus').textContent = `🏆 Score: ${correctCount}/13`;
+    }
+
+    function resetGame() {
+      stopTimer();
+      isGameActive = false;
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnCheck').disabled = true;
+      document.getElementById('btnReset').disabled = true;
+      document.getElementById('score').textContent = '0/13';
+      document.getElementById('timer').textContent = '00:00';
+      document.getElementById('audioStatus').textContent = '🎵 Ready!';
+      document.getElementById('sttResultTa').textContent = 'Waiting...';
+      document.getElementById('sttResultEn').textContent = 'Waiting...';
+      shuffledSoundsList = [...dataset];
+      renderLayout(dataset, dataset);
+    }
+
+    function enableDrag(elem) {
+      elem.addEventListener('pointerdown', e => {
+        if (!isGameActive || e.target.tagName === 'BUTTON') return;
+        elem.classList.add('dragging');
+        elem.setPointerCapture(e.pointerId);
+      });
+
+      elem.addEventListener('pointermove', e => {
+        if (!isGameActive || !elem.classList.contains('dragging')) return;
+        const rect = elem.getBoundingClientRect();
+        elem.style.transform = `translate(${e.clientX - (rect.width / 2)}px, ${e.clientY - (rect.height / 2)}px)`;
+        elem.style.position = 'fixed';
+        elem.style.zIndex = '1000';
+        elem.style.width = '60px';
+        elem.style.height = '30px';
+      });
+
+      elem.addEventListener('pointerup', e => {
+        if (!elem.classList.contains('dragging')) return;
+        elem.classList.remove('dragging');
+        elem.releasePointerCapture(e.pointerId);
+        elem.style.transform = 'none';
+        elem.style.position = 'static';
+        elem.style.width = '100%';
+        elem.style.height = '100%';
+
+        if (!isGameActive) return;
+
+        const targetArea = document.elementFromPoint(e.clientX, e.clientY)?.closest('.sound-drop-box, .portrait-sound-slot, .landscape-sound-slot, .portrait-img-card, .landscape-img-card');
+        if (targetArea) {
+          if (targetArea.classList.contains('portrait-img-card') || targetArea.classList.contains('landscape-img-card')) {
+            const dropZone = targetArea.querySelector('.sound-drop-box');
+            if (dropZone) dropZone.appendChild(elem);
+          } else {
+            targetArea.appendChild(elem);
+          }
+        }
+      });
+    }
+
+    function startTimer() {
+      stopTimer();
+      secondsElapsed = 0;
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const s = String(secondsElapsed % 60).padStart(2, '0');
+        document.getElementById('timer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+    function stopTimer() { if (timerInterval) clearInterval(timerInterval); }
+    function resetTimer() { stopTimer(); secondsElapsed = 0; document.getElementById('timer').textContent = '00:00'; }
+
+    window.onload = () => renderLayout(dataset, dataset);
+  </script>
+
+</body>
+</html>
