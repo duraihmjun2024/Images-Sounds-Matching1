@@ -226,7 +226,6 @@
     let activeSource = null;
     let activeRecognition = null;
 
-    // Persistent HTML5 Audio element for immediate playback on tap gesture
     let persistentAudio = new Audio();
     persistentAudio.crossOrigin = 'anonymous';
 
@@ -239,7 +238,6 @@
         audioCtx.resume();
       }
       
-      // Play a quick silent buffer to unlock the tablet browser's audio channel synchronously
       const buffer = audioCtx.createBuffer(1, 1, 22050);
       const source = audioCtx.createBufferSource();
       source.buffer = buffer;
@@ -264,37 +262,38 @@
     }
 
     function getAudioUrl(fileId) {
-      return `https://docs.google.com/uc?export=download&id=${fileId}`;
+      return `https://drive.google.com/uc?export=open&id=${fileId}`;
     }
 
-    function playSound(item) {
+    async function playSound(item) {
       initAudioContext();
       stopAllAudio();
       
       const soundUrl = getAudioUrl(item.audioId);
       updateStatus(`⏳ Loading Sound ${item.id}...`);
 
-      // Prime and load the source directly during the touch event frame
-      persistentAudio.src = soundUrl;
-      persistentAudio.load();
+      try {
+        persistentAudio.src = soundUrl;
+        persistentAudio.load();
 
-      const playPromise = persistentAudio.play();
-
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          updateStatus(`▶ Playing Sound ${item.id}...`);
-          persistentAudio.onended = () => updateStatus('🎵 Ready');
-        }).catch(err => {
-          console.warn('Direct HTML5 play blocked, falling back to WebAudio decoder...', err);
-          fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
-        });
+        await persistentAudio.play();
+        updateStatus(`▶ Playing Sound ${item.id}...`);
+        persistentAudio.onended = () => updateStatus('🎵 Ready');
+      } catch (err) {
+        console.warn('HTML5 direct play blocked or failed, attempting WebAudio buffer fallback...', err);
+        fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
       }
     }
 
     async function fetchAndPlayWebAudio(url, statusMsg) {
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Fetch failed');
+        const proxyUrl = url.includes('export=open') 
+          ? url 
+          : `https://docs.google.com/uc?export=download&id=${url.split('id=')[1]}`;
+
+        const response = await fetch(proxyUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+        
         const arrayBuffer = await response.arrayBuffer();
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
         
@@ -303,14 +302,14 @@
         activeSource.connect(audioCtx.destination);
         activeSource.start(0);
         
-        updateStatus('▶ Playing...');
+        updateStatus(statusMsg || '▶ Playing...');
         activeSource.onended = () => {
           activeSource = null;
           updateStatus('🎵 Ready');
         };
       } catch (e) {
         console.error("Audio playback failure:", e);
-        updateStatus('⚠️️ Sound playback error');
+        updateStatus('⚠️ Drive link restricted or blocked');
       }
     }
 
@@ -334,9 +333,11 @@
 
     function tryExternalTts(text, lang) {
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob`;
-      playSound({ id: lang.toUpperCase(), audioId: '' }); // Uses primed audio player logic
       persistentAudio.src = ttsUrl;
-      persistentAudio.play().catch(() => fetchAndPlayWebAudio(ttsUrl, lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...'));
+      persistentAudio.play().then(() => {
+        updateStatus(lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...');
+        persistentAudio.onended = () => updateStatus('🎵 Ready');
+      }).catch(() => fetchAndPlayWebAudio(ttsUrl, lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...'));
     }
 
     async function startSpeechToText(lang) {
@@ -372,7 +373,7 @@
 
       const targetBox = lang === 'ta' ? document.getElementById('sttResultTa') : document.getElementById('sttResultEn');
       targetBox.textContent = "Listening...";
-      updateStatus(lang === 'ta' ? '🎙️️ Listening Tamil...' : '🎙️ Listening English...');
+      updateStatus(lang === 'ta' ? '🎙️ Listening Tamil...' : '🎙️ Listening English...');
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -398,7 +399,7 @@
       try {
         recognition.start();
       } catch (e) {
-        updateStatus('⚠️ Could not start Mic');
+        updateStatus('⚠️️ Could not start Mic');
       }
     }
 
@@ -635,6 +636,5 @@
 
       renderLayout(dataset, dataset);
     };
-  </script>
-</body>
+  </script></body>
 </html>
