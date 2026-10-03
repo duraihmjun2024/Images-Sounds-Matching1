@@ -237,14 +237,14 @@
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      
+
       const buffer = audioCtx.createBuffer(1, 1, 22050);
       const source = audioCtx.createBufferSource();
       source.buffer = buffer;
       source.connect(audioCtx.destination);
       source.start(0);
 
-      updateStatus('🎵 Audio Unlocked!');
+      updateStatus('🎵 Audio Active');
     }
 
     function stopAllAudio() {
@@ -261,47 +261,43 @@
       }
     }
 
+    // Direct Google CDN endpoint bypasses Drive streaming block completely
     function getAudioUrl(fileId) {
-      return `https://drive.google.com/uc?export=open&id=${fileId}`;
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
 
     async function playSound(item) {
       initAudioContext();
       stopAllAudio();
-      
+
       const soundUrl = getAudioUrl(item.audioId);
       updateStatus(`⏳ Loading Sound ${item.id}...`);
 
-      try {
-        persistentAudio.src = soundUrl;
-        persistentAudio.load();
+      persistentAudio.src = soundUrl;
+      persistentAudio.load();
 
-        await persistentAudio.play();
+      persistentAudio.play().then(() => {
         updateStatus(`▶ Playing Sound ${item.id}...`);
         persistentAudio.onended = () => updateStatus('🎵 Ready');
-      } catch (err) {
-        console.warn('HTML5 direct play blocked or failed, attempting WebAudio buffer fallback...', err);
+      }).catch((err) => {
+        console.warn('Direct media load blocked, trying fetch stream...', err);
         fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
-      }
+      });
     }
 
     async function fetchAndPlayWebAudio(url, statusMsg) {
       try {
-        const proxyUrl = url.includes('export=open') 
-          ? url 
-          : `https://docs.google.com/uc?export=download&id=${url.split('id=')[1]}`;
-
-        const response = await fetch(proxyUrl, { mode: 'cors' });
+        const response = await fetch(url, { mode: 'cors' });
         if (!response.ok) throw new Error(`HTTP status ${response.status}`);
-        
+
         const arrayBuffer = await response.arrayBuffer();
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
-        
+
         activeSource = audioCtx.createBufferSource();
         activeSource.buffer = decodedData;
         activeSource.connect(audioCtx.destination);
         activeSource.start(0);
-        
+
         updateStatus(statusMsg || '▶ Playing...');
         activeSource.onended = () => {
           activeSource = null;
@@ -309,7 +305,7 @@
         };
       } catch (e) {
         console.error("Audio playback failure:", e);
-        updateStatus('⚠️ Drive link restricted or blocked');
+        updateStatus('⚠️ Audio link blocked on this device');
       }
     }
 
@@ -317,8 +313,9 @@
       initAudioContext();
       stopAllAudio();
       const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
-      
-      if ('speechSynthesis' in window) {
+
+      // Smartboards often lack local Tamil speech engines; fallback gracefully to reliable audio stream
+      if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
@@ -346,7 +343,7 @@
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert('Speech Recognition is not supported on this browser/tablet.');
+        alert('Speech Recognition is not supported on this browser/smartboard.');
         return;
       }
 
@@ -357,7 +354,7 @@
         }
       } catch (err) {
         updateStatus('⚠️ Mic Permission Denied');
-        alert('Please allow Microphone access in your browser settings to use Speech to Text.');
+        alert('Please allow Microphone access in your browser settings.');
         return;
       }
 
@@ -399,7 +396,7 @@
       try {
         recognition.start();
       } catch (e) {
-        updateStatus('⚠️️ Could not start Mic');
+        updateStatus('⚠ Could not start Mic');
       }
     }
 
@@ -637,5 +634,8 @@
       renderLayout(dataset, dataset);
     };
   </script>
+
+
+
 </body>
 </html>
