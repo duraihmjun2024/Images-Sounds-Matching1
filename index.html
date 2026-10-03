@@ -196,8 +196,8 @@
     <div id="gameContainer" class="game-container"></div>
   </main>
 
-  <script>
-const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
+<script>
+    const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
     const ENGLISH_SENTENCE = "Perseverance and prudent practice lead to success";
 
     const dataset = [
@@ -226,6 +226,10 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
     let activeSource = null;
     let activeRecognition = null;
 
+    // Persistent HTML5 Audio element for immediate playback on tap gesture
+    let persistentAudio = new Audio();
+    persistentAudio.crossOrigin = 'anonymous';
+
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -235,7 +239,7 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
         audioCtx.resume();
       }
       
-      // Play silent buffer to unlock tablet audio channel synchronously
+      // Play a quick silent buffer to unlock the tablet browser's audio channel synchronously
       const buffer = audioCtx.createBuffer(1, 1, 22050);
       const source = audioCtx.createBufferSource();
       source.buffer = buffer;
@@ -246,6 +250,10 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
     }
 
     function stopAllAudio() {
+      if (persistentAudio) {
+        persistentAudio.pause();
+        persistentAudio.currentTime = 0;
+      }
       if (activeSource) {
         try { activeSource.stop(); } catch(e) {}
         activeSource = null;
@@ -259,11 +267,31 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
       return `https://docs.google.com/uc?export=download&id=${fileId}`;
     }
 
-    async function fetchAndPlayWebAudio(url, statusMsg) {
+    function playSound(item) {
       initAudioContext();
       stopAllAudio();
-      updateStatus(statusMsg || '⏳ Loading Sound...');
+      
+      const soundUrl = getAudioUrl(item.audioId);
+      updateStatus(`⏳ Loading Sound ${item.id}...`);
 
+      // Prime and load the source directly during the touch event frame
+      persistentAudio.src = soundUrl;
+      persistentAudio.load();
+
+      const playPromise = persistentAudio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          updateStatus(`▶ Playing Sound ${item.id}...`);
+          persistentAudio.onended = () => updateStatus('🎵 Ready');
+        }).catch(err => {
+          console.warn('Direct HTML5 play blocked, falling back to WebAudio decoder...', err);
+          fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
+        });
+      }
+    }
+
+    async function fetchAndPlayWebAudio(url, statusMsg) {
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error('Fetch failed');
@@ -281,22 +309,9 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
           updateStatus('🎵 Ready');
         };
       } catch (e) {
-        console.warn('WebAudio failed, using HTML5 fallback', e);
-        fallbackHtml5Play(url, statusMsg);
+        console.error("Audio playback failure:", e);
+        updateStatus('⚠️️ Sound playback error');
       }
-    }
-
-    function fallbackHtml5Play(url, statusMsg) {
-      const a = new Audio();
-      a.crossOrigin = 'anonymous';
-      a.src = url;
-      a.play().then(() => {
-        updateStatus(statusMsg || '▶ Playing...');
-        a.onended = () => updateStatus('🎵 Ready');
-      }).catch(err => {
-        console.error("Audio playback failure:", err);
-        updateStatus('⚠️ Tap button again to play audio');
-      });
     }
 
     function speakText(lang) {
@@ -319,12 +334,9 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
 
     function tryExternalTts(text, lang) {
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob`;
-      fetchAndPlayWebAudio(ttsUrl, lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...');
-    }
-
-    function playSound(item) {
-      const soundUrl = getAudioUrl(item.audioId);
-      fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
+      playSound({ id: lang.toUpperCase(), audioId: '' }); // Uses primed audio player logic
+      persistentAudio.src = ttsUrl;
+      persistentAudio.play().catch(() => fetchAndPlayWebAudio(ttsUrl, lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...'));
     }
 
     async function startSpeechToText(lang) {
@@ -337,11 +349,9 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
         return;
       }
 
-      // Request microphone permissions explicitly to prevent "Aborted" error on tablets
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          // Stop stream immediately; we only needed to verify/grant permission
           stream.getTracks().forEach(track => track.stop());
         }
       } catch (err) {
@@ -362,7 +372,7 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
 
       const targetBox = lang === 'ta' ? document.getElementById('sttResultTa') : document.getElementById('sttResultEn');
       targetBox.textContent = "Listening...";
-      updateStatus(lang === 'ta' ? '🎙️ Listening Tamil...' : '🎙️ Listening English...');
+      updateStatus(lang === 'ta' ? '🎙️️ Listening Tamil...' : '🎙️ Listening English...');
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -624,9 +634,7 @@ const TAMIL_SENTENCE = "விடாமுயற்சியும் விவ�
       });
 
       renderLayout(dataset, dataset);
-    };  
-  
-  
+    };
   </script>
 </body>
 </html>
