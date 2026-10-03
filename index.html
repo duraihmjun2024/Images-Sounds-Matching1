@@ -108,6 +108,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      touch-action: manipulation;
     }
 
     .modal-overlay {
@@ -155,8 +156,8 @@
       <h2>📱 Choose Layout Mode</h2>
       <p>Tap below to unlock audio and start:</p>
       <div class="modal-btns">
-        <button class="modal-btn" onclick="selectOrientation('portrait')">📱 Portrait<br><small>(Side-by-Side)</small></button>
-        <button class="modal-btn secondary" onclick="selectOrientation('landscape')">🔄 Landscape<br><small>(Horizontal Grid)</small></button>
+        <button class="modal-btn" id="btnPortrait">📱 Portrait<br><small>(Side-by-Side)</small></button>
+        <button class="modal-btn secondary" id="btnLandscape">🔄 Landscape<br><small>(Horizontal Grid)</small></button>
       </div>
     </div>
   </div>
@@ -169,14 +170,14 @@
   <main>
     <div class="controls-top">
       <div class="btn-group">
-        <button id="btnStart" class="action-btn start" onclick="startGame()">▶ Start</button>
-        <button id="btnCheck" class="action-btn" onclick="checkAnswers()" disabled>Check</button>
-        <button id="btnReset" class="action-btn reset" onclick="resetGame()" disabled>Reset</button>
+        <button id="btnStart" class="action-btn start">▶ Start</button>
+        <button id="btnCheck" class="action-btn" disabled>Check</button>
+        <button id="btnReset" class="action-btn reset" disabled>Reset</button>
 
-        <button class="action-btn tts" onclick="speakText('ta')">🔊 TTS (TA)</button>
-        <button class="action-btn tts" onclick="speakText('en')">🔊 TTS (EN)</button>
-        <button class="action-btn stt" onclick="startSpeechToText('ta')">🎙 STT (TA)</button>
-        <button class="action-btn stt" onclick="startSpeechToText('en')">🎙️ STT (EN)</button>
+        <button id="btnTtsTa" class="action-btn tts">🔊 TTS (TA)</button>
+        <button id="btnTtsEn" class="action-btn tts">🔊 TTS (EN)</button>
+        <button id="btnSttTa" class="action-btn stt">🎙 STT (TA)</button>
+        <button id="btnSttEn" class="action-btn stt">🎙️ STT (EN)</button>
       </div>
 
       <div class="stt-container">
@@ -194,8 +195,6 @@
 
     <div id="gameContainer" class="game-container"></div>
   </main>
-
-  <audio id="globalAudio" preload="auto" playsinline crossorigin="anonymous"></audio>
 
   <script>
     const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
@@ -217,39 +216,46 @@
       { id: "13", img: "https://lh3.googleusercontent.com/d/1f8jYRYyyvitbQCyri5EZAK1AfgkK85jt", audioId: "1np9pxT7C3MYZteDghX0R-ZVHxtYC_W3O" }
     ];
 
-    const globalAudio = document.getElementById('globalAudio');
     let timerInterval = null;
     let secondsElapsed = 0;
     let isGameActive = false;
     let currentOrientation = 'portrait';
     let shuffledSoundsList = [...dataset];
+    let isAudioUnlocked = false;
+
+    // Single active Audio object created directly during user gesture
+    let activeAudio = new Audio();
+    activeAudio.setAttribute('playsinline', 'true');
+    activeAudio.setAttribute('webkit-playsinline', 'true');
 
     function getAudioUrl(fileId) {
-      return `https://drive.google.com/uc?export=open&id=${fileId}`;
+      return `https://docs.google.com/uc?export=download&id=${fileId}`;
     }
 
     function unlockSmartboardAudio() {
-      globalAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-      globalAudio.play().then(() => {
-        globalAudio.pause();
-      }).catch(e => console.log("Audio unlock:", e));
+      if (isAudioUnlocked) return;
+      activeAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      activeAudio.play().then(() => {
+        activeAudio.pause();
+        isAudioUnlocked = true;
+      }).catch(e => console.log("Audio unlock attempted:", e));
     }
 
     function playAudioStream(url, statusMsg) {
       unlockSmartboardAudio();
       updateStatus(statusMsg || '▶ Playing...');
-      
-      globalAudio.pause();
-      globalAudio.currentTime = 0;
-      globalAudio.src = url;
-      
-      const playPromise = globalAudio.play();
+
+      activeAudio.pause();
+      activeAudio.src = url;
+      activeAudio.currentTime = 0;
+
+      const playPromise = activeAudio.play();
       if (playPromise !== undefined) {
         playPromise.then(() => {
-          globalAudio.onended = () => updateStatus('🎵 Ready');
+          activeAudio.onended = () => updateStatus('🎵 Ready');
         }).catch(err => {
           console.error("Playback error:", err);
-          updateStatus('⚠️ Audio Error');
+          updateStatus('⚠️ Audio Playback Blocked');
         });
       }
     }
@@ -270,7 +276,7 @@
     function startSpeechToText(lang) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert('Speech Recognition is not supported on this device browser.');
+        alert('Speech Recognition is not supported on this browser.');
         return;
       }
 
@@ -381,6 +387,22 @@
       }
     }
 
+    function attachUniversalTrigger(element, handler) {
+      let handled = false;
+      const execute = (e) => {
+        if (handled) return;
+        handled = true;
+        e.preventDefault();
+        e.stopPropagation();
+        handler(e);
+        setTimeout(() => { handled = false; }, 300);
+      };
+
+      element.addEventListener('touchstart', execute, { passive: false });
+      element.addEventListener('pointerdown', execute, { passive: false });
+      element.addEventListener('click', execute);
+    }
+
     function createSoundBlock(item) {
       const dragItem = document.createElement('div');
       dragItem.className = 'draggable-sound';
@@ -391,14 +413,7 @@
       btn.className = 'audio-symbol-btn';
       btn.textContent = '🔊';
 
-      const triggerAudio = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        playSound(item);
-      };
-
-      btn.addEventListener('touchstart', triggerAudio, { passive: false });
-      btn.addEventListener('click', triggerAudio);
+      attachUniversalTrigger(btn, () => playSound(item));
 
       dragItem.appendChild(btn);
       enableDrag(dragItem);
@@ -518,7 +533,19 @@
     function stopTimer() { if (timerInterval) clearInterval(timerInterval); }
     function resetTimer() { stopTimer(); secondsElapsed = 0; document.getElementById('timer').textContent = '00:00'; }
 
-    window.onload = () => renderLayout(dataset, dataset);
+    window.onload = () => {
+      attachUniversalTrigger(document.getElementById('btnPortrait'), () => selectOrientation('portrait'));
+      attachUniversalTrigger(document.getElementById('btnLandscape'), () => selectOrientation('landscape'));
+      attachUniversalTrigger(document.getElementById('btnStart'), startGame);
+      attachUniversalTrigger(document.getElementById('btnCheck'), checkAnswers);
+      attachUniversalTrigger(document.getElementById('btnReset'), resetGame);
+      attachUniversalTrigger(document.getElementById('btnTtsTa'), () => speakText('ta'));
+      attachUniversalTrigger(document.getElementById('btnTtsEn'), () => speakText('en'));
+      attachUniversalTrigger(document.getElementById('btnSttTa'), () => startSpeechToText('ta'));
+      attachUniversalTrigger(document.getElementById('btnSttEn'), () => startSpeechToText('en'));
+
+      renderLayout(dataset, dataset);
+    };
   </script>
 
 </body>
