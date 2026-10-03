@@ -44,7 +44,7 @@
     }
     
     .btn-group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-    .action-btn { padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 3px; font-weight: 600; font-size: 0.7rem; cursor: pointer; }
+    .action-btn { padding: 6px 10px; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: 600; font-size: 0.75rem; cursor: pointer; }
     .action-btn.start { background: var(--accent); }
     .action-btn.reset { background: #5f6368; }
     .action-btn.tts { background: #9c27b0; }
@@ -99,7 +99,7 @@
     .audio-symbol-btn {
       background: none;
       border: none;
-      font-size: 0.85rem;
+      font-size: 1.1rem;
       cursor: pointer;
       line-height: 1;
       color: #8ab4f8;
@@ -137,11 +137,11 @@
     .modal-btns { display: flex; gap: 8px; justify-content: center; }
     .modal-btn {
       flex: 1;
-      padding: 8px;
+      padding: 10px;
       border: none;
       border-radius: 4px;
       font-weight: bold;
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       cursor: pointer;
       background: var(--primary);
       color: white;
@@ -153,8 +153,8 @@
 
   <div id="orientationModal" class="modal-overlay">
     <div class="modal-card">
-      <h2>📱 Choose Layout Mode</h2>
-      <p>Tap below to unlock audio and start:</p>
+      <h2>📱 Tap to Start Game</h2>
+      <p>Touch a button below to activate board audio:</p>
       <div class="modal-btns">
         <button class="modal-btn" id="btnPortrait">📱 Portrait<br><small>(Side-by-Side)</small></button>
         <button class="modal-btn secondary" id="btnLandscape">🔄 Landscape<br><small>(Horizontal Grid)</small></button>
@@ -185,7 +185,7 @@
         <div class="stt-box"><b>EN:</b> <span id="sttResultEn">Waiting...</span></div>
       </div>
 
-      <div id="audioStatus" class="audio-status-inline">🎵 Ready</div>
+      <div id="audioStatus" class="audio-status-inline">🎵 Tap Screen First</div>
 
       <div class="score-board">
         <div class="score-item">⏱ <span id="timer">00:00</span></div>
@@ -195,6 +195,8 @@
 
     <div id="gameContainer" class="game-container"></div>
   </main>
+
+  <audio id="globalAudio" playsinline crossorigin="anonymous" preload="auto"></audio>
 
   <script>
     const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
@@ -221,56 +223,56 @@
     let isGameActive = false;
     let currentOrientation = 'portrait';
     let shuffledSoundsList = [...dataset];
-    let isAudioUnlocked = false;
 
-    // Single active Audio object created directly during user gesture
-    let activeAudio = new Audio();
-    activeAudio.setAttribute('playsinline', 'true');
-    activeAudio.setAttribute('webkit-playsinline', 'true');
+    const globalAudio = document.getElementById('globalAudio');
 
     function getAudioUrl(fileId) {
       return `https://docs.google.com/uc?export=download&id=${fileId}`;
     }
 
-    function unlockSmartboardAudio() {
-      if (isAudioUnlocked) return;
-      activeAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-      activeAudio.play().then(() => {
-        activeAudio.pause();
-        isAudioUnlocked = true;
-      }).catch(e => console.log("Audio unlock attempted:", e));
+    // Force-unlock browser sound engine inside direct user gesture
+    function forceUnlockAudio() {
+      globalAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      const promise = globalAudio.play();
+      if (promise !== undefined) {
+        promise.then(() => {
+          globalAudio.pause();
+          updateStatus('🎵 Sound Unlocked!');
+        }).catch(() => {});
+      }
     }
 
     function playAudioStream(url, statusMsg) {
-      unlockSmartboardAudio();
       updateStatus(statusMsg || '▶ Playing...');
 
-      activeAudio.pause();
-      activeAudio.src = url;
-      activeAudio.currentTime = 0;
+      globalAudio.pause();
+      globalAudio.currentTime = 0;
+      globalAudio.src = url;
 
-      const playPromise = activeAudio.play();
+      const playPromise = globalAudio.play();
       if (playPromise !== undefined) {
         playPromise.then(() => {
-          activeAudio.onended = () => updateStatus('🎵 Ready');
+          globalAudio.onended = () => updateStatus('🎵 Ready');
         }).catch(err => {
           console.error("Playback error:", err);
-          updateStatus('⚠️ Audio Playback Blocked');
+          updateStatus('⚠️ Audio Blocked - Tap Button');
         });
       }
     }
 
     function speakText(lang) {
+      forceUnlockAudio();
       const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
-      const statusText = lang === 'ta' ? '🗣️ Speaking Tamil...' : '🗣️ Speaking English...';
+      const statusText = lang === 'ta' ? '🗣️ Tamil Speech...' : '🗣️ English Speech...';
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToSpeak)}&tl=${lang}&client=tw-ob`;
       
       playAudioStream(ttsUrl, statusText);
     }
 
     function playSound(item) {
+      forceUnlockAudio();
       const soundUrl = getAudioUrl(item.audioId);
-      playAudioStream(soundUrl, `🔊 Playing Sound ${item.id}...`);
+      playAudioStream(soundUrl, `🔊 Playing Sound ${item.id}`);
     }
 
     function startSpeechToText(lang) {
@@ -312,7 +314,7 @@
     }
 
     function selectOrientation(mode) {
-      unlockSmartboardAudio();
+      forceUnlockAudio();
       currentOrientation = mode;
       document.getElementById('orientationModal').style.display = 'none';
       renderLayout(dataset, shuffledSoundsList);
@@ -387,22 +389,6 @@
       }
     }
 
-    function attachUniversalTrigger(element, handler) {
-      let handled = false;
-      const execute = (e) => {
-        if (handled) return;
-        handled = true;
-        e.preventDefault();
-        e.stopPropagation();
-        handler(e);
-        setTimeout(() => { handled = false; }, 300);
-      };
-
-      element.addEventListener('touchstart', execute, { passive: false });
-      element.addEventListener('pointerdown', execute, { passive: false });
-      element.addEventListener('click', execute);
-    }
-
     function createSoundBlock(item) {
       const dragItem = document.createElement('div');
       dragItem.className = 'draggable-sound';
@@ -413,7 +399,14 @@
       btn.className = 'audio-symbol-btn';
       btn.textContent = '🔊';
 
-      attachUniversalTrigger(btn, () => playSound(item));
+      const triggerAudio = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        playSound(item);
+      };
+
+      btn.addEventListener('touchstart', triggerAudio, { passive: false });
+      btn.addEventListener('click', triggerAudio);
 
       dragItem.appendChild(btn);
       enableDrag(dragItem);
@@ -421,7 +414,7 @@
     }
 
     function startGame() {
-      unlockSmartboardAudio();
+      forceUnlockAudio();
       resetTimer();
       startTimer();
       isGameActive = true;
@@ -534,15 +527,18 @@
     function resetTimer() { stopTimer(); secondsElapsed = 0; document.getElementById('timer').textContent = '00:00'; }
 
     window.onload = () => {
-      attachUniversalTrigger(document.getElementById('btnPortrait'), () => selectOrientation('portrait'));
-      attachUniversalTrigger(document.getElementById('btnLandscape'), () => selectOrientation('landscape'));
-      attachUniversalTrigger(document.getElementById('btnStart'), startGame);
-      attachUniversalTrigger(document.getElementById('btnCheck'), checkAnswers);
-      attachUniversalTrigger(document.getElementById('btnReset'), resetGame);
-      attachUniversalTrigger(document.getElementById('btnTtsTa'), () => speakText('ta'));
-      attachUniversalTrigger(document.getElementById('btnTtsEn'), () => speakText('en'));
-      attachUniversalTrigger(document.getElementById('btnSttTa'), () => startSpeechToText('ta'));
-      attachUniversalTrigger(document.getElementById('btnSttEn'), () => startSpeechToText('en'));
+      document.getElementById('btnPortrait').addEventListener('click', () => selectOrientation('portrait'));
+      document.getElementById('btnLandscape').addEventListener('click', () => selectOrientation('landscape'));
+      document.getElementById('btnStart').addEventListener('click', startGame);
+      document.getElementById('btnCheck').addEventListener('click', checkAnswers);
+      document.getElementById('btnReset').addEventListener('click', resetGame);
+      document.getElementById('btnTtsTa').addEventListener('click', () => speakText('ta'));
+      document.getElementById('btnTtsEn').addEventListener('click', () => speakText('en'));
+      document.getElementById('btnSttTa').addEventListener('click', () => startSpeechToText('ta'));
+      document.getElementById('btnSttEn').addEventListener('click', () => startSpeechToText('en'));
+
+      document.body.addEventListener('touchstart', forceUnlockAudio, { once: true });
+      document.body.addEventListener('click', forceUnlockAudio, { once: true });
 
       renderLayout(dataset, dataset);
     };
