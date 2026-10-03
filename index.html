@@ -197,7 +197,7 @@
   </main>
 
   <script>
-    const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
+const TAMIL_SENTENCE = "விடாமுயற்சியும் விவேக பயிற்சியும் வெற்றி தரும்";
     const ENGLISH_SENTENCE = "Perseverance and prudent practice lead to success";
 
     const dataset = [
@@ -222,8 +222,9 @@
     let currentOrientation = 'portrait';
     let shuffledSoundsList = [...dataset];
 
-    // Native Web Audio Context for Smartboards
     let audioCtx = null;
+    let activeSource = null;
+    let activeRecognition = null;
 
     function initAudioContext() {
       if (!audioCtx) {
@@ -233,7 +234,25 @@
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      
+      // Play silent buffer to unlock tablet audio channel synchronously
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+
       updateStatus('🎵 Audio Unlocked!');
+    }
+
+    function stopAllAudio() {
+      if (activeSource) {
+        try { activeSource.stop(); } catch(e) {}
+        activeSource = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     }
 
     function getAudioUrl(fileId) {
@@ -242,6 +261,7 @@
 
     async function fetchAndPlayWebAudio(url, statusMsg) {
       initAudioContext();
+      stopAllAudio();
       updateStatus(statusMsg || '⏳ Loading Sound...');
 
       try {
@@ -250,15 +270,18 @@
         const arrayBuffer = await response.arrayBuffer();
         const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
         
-        const source = audioCtx.createBufferSource();
-        source.buffer = decodedData;
-        source.connect(audioCtx.destination);
-        source.start(0);
+        activeSource = audioCtx.createBufferSource();
+        activeSource.buffer = decodedData;
+        activeSource.connect(audioCtx.destination);
+        activeSource.start(0);
         
         updateStatus('▶ Playing...');
-        source.onended = () => updateStatus('🎵 Ready');
+        activeSource.onended = () => {
+          activeSource = null;
+          updateStatus('🎵 Ready');
+        };
       } catch (e) {
-        console.warn('WebAudio failed, trying fallback HTML5 player', e);
+        console.warn('WebAudio failed, using HTML5 fallback', e);
         fallbackHtml5Play(url, statusMsg);
       }
     }
@@ -272,15 +295,15 @@
         a.onended = () => updateStatus('🎵 Ready');
       }).catch(err => {
         console.error("Audio playback failure:", err);
-        updateStatus('⚠️ Sound Blocked by Board');
+        updateStatus('⚠️ Tap button again to play audio');
       });
     }
 
     function speakText(lang) {
       initAudioContext();
+      stopAllAudio();
       const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
       
-      // Fallback 1: Web Speech Synthesis API (Native Smartboard TTS)
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -304,15 +327,35 @@
       fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
     }
 
-    function startSpeechToText(lang) {
+    async function startSpeechToText(lang) {
       initAudioContext();
+      stopAllAudio();
+
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert('Speech Recognition is not supported on this browser.');
+        alert('Speech Recognition is not supported on this browser/tablet.');
         return;
       }
 
+      // Request microphone permissions explicitly to prevent "Aborted" error on tablets
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // Stop stream immediately; we only needed to verify/grant permission
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        updateStatus('⚠️ Mic Permission Denied');
+        alert('Please allow Microphone access in your browser settings to use Speech to Text.');
+        return;
+      }
+
+      if (activeRecognition) {
+        try { activeRecognition.abort(); } catch(e) {}
+      }
+
       const recognition = new SpeechRecognition();
+      activeRecognition = recognition;
       recognition.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
@@ -321,8 +364,6 @@
       targetBox.textContent = "Listening...";
       updateStatus(lang === 'ta' ? '🎙️ Listening Tamil...' : '🎙️ Listening English...');
 
-      recognition.start();
-
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         targetBox.textContent = transcript;
@@ -330,13 +371,25 @@
       };
 
       recognition.onerror = (event) => {
-        targetBox.textContent = "Error!";
-        updateStatus(`⚠️ STT Error: ${event.error}`);
+        if (event.error === 'aborted') {
+          targetBox.textContent = "Retry tap";
+          updateStatus('⚠️ Mic aborted - tap again');
+        } else {
+          targetBox.textContent = "Error!";
+          updateStatus(`⚠️ STT Error: ${event.error}`);
+        }
       };
 
       recognition.onend = () => {
+        activeRecognition = null;
         setTimeout(() => updateStatus('🎵 Ready'), 2000);
       };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        updateStatus('⚠️ Could not start Mic');
+      }
     }
 
     function updateStatus(msg) {
@@ -571,8 +624,9 @@
       });
 
       renderLayout(dataset, dataset);
-    };
+    };  
+  
+  
   </script>
-
 </body>
 </html>
