@@ -227,7 +227,6 @@
     let activeRecognition = null;
 
     let persistentAudio = new Audio();
-    persistentAudio.crossOrigin = 'anonymous';
 
     function initAudioContext() {
       if (!audioCtx) {
@@ -261,32 +260,55 @@
       }
     }
 
-    function getAudioUrl(fileId) {
-      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    function getAudioUrls(fileId) {
+      return [
+        `https://docs.google.com/uc?export=open&id=${fileId}`,
+        `https://drive.google.com/uc?export=download&id=${fileId}`,
+        `https://lh3.googleusercontent.com/d/${fileId}`
+      ];
     }
 
     async function playSound(item) {
       initAudioContext();
       stopAllAudio();
 
-      const soundUrl = getAudioUrl(item.audioId);
       updateStatus(`⏳ Loading Sound ${item.id}...`);
+      const urls = getAudioUrls(item.audioId);
 
-      persistentAudio.src = soundUrl;
-      persistentAudio.load();
+      let playedSuccessfully = false;
 
-      persistentAudio.play().then(() => {
-        updateStatus(`▶ Playing Sound ${item.id}...`);
-        persistentAudio.onended = () => updateStatus('🎵 Ready');
-      }).catch((err) => {
-        console.warn('Direct media load blocked, trying fetch stream...', err);
-        fetchAndPlayWebAudio(soundUrl, `🔊 Sound ${item.id}`);
-      });
+      for (let i = 0; i < urls.length; i++) {
+        try {
+          await new Promise((resolve, reject) => {
+            persistentAudio.src = urls[i];
+            persistentAudio.onended = () => {
+              updateStatus('🎵 Ready');
+              resolve();
+            };
+            persistentAudio.onerror = reject;
+            
+            const playPromise = persistentAudio.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                updateStatus(`▶ Playing Sound ${item.id}...`);
+              }).catch(reject);
+            }
+          });
+          playedSuccessfully = true;
+          break;
+        } catch (err) {
+          console.warn(`URL attempt ${i + 1} failed for item ${item.id}, trying next option...`);
+        }
+      }
+
+      if (!playedSuccessfully) {
+        fetchAndPlayWebAudio(urls[0], `🔊 Sound ${item.id}`);
+      }
     }
 
     async function fetchAndPlayWebAudio(url, statusMsg) {
       try {
-        const response = await fetch(url, { mode: 'cors' });
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP status ${response.status}`);
 
         const arrayBuffer = await response.arrayBuffer();
@@ -304,7 +326,7 @@
         };
       } catch (e) {
         console.error("Audio playback failure:", e);
-        updateStatus('⚠️ Audio link blocked on this device');
+        updateStatus('⚠️ Audio file standard stream blocked');
       }
     }
 
