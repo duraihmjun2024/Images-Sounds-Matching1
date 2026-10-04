@@ -261,9 +261,8 @@
       }
     }
 
-    // Direct Google CDN endpoint bypasses Drive streaming block completely
     function getAudioUrl(fileId) {
-      return `https://lh3.googleusercontent.com/d/${fileId}`;
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
 
     async function playSound(item) {
@@ -314,7 +313,6 @@
       stopAllAudio();
       const textToSpeak = lang === 'ta' ? TAMIL_SENTENCE : ENGLISH_SENTENCE;
 
-      // Smartboards often lack local Tamil speech engines; fallback gracefully to reliable audio stream
       if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -634,8 +632,6 @@
       renderLayout(dataset, dataset);
     };
   </script>
-
-
 
 </body>
 </html>
